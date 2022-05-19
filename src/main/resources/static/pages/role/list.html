@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../../element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/elementUIStyle.css">
+</head>
+<body>
+
+<div id="app" class="login">
+    <el-container style="height: 100%; border: 1px solid #eee">
+        <el-aside width="200px" style="background-color: rgb(238, 241, 246)">
+            <el-radio-group v-model="isCollapse" style="margin-bottom: 20px;">
+                <el-radio-button :label="false">展开</el-radio-button>
+                <el-radio-button :label="true">收起</el-radio-button>
+            </el-radio-group>
+            <el-menu default-active="1-1" class="el-menu-vertical-demo" @open="handleOpen" @close="handleClose" :collapse="isCollapse">
+                <el-submenu index="1">
+                    <template slot="title">
+                        <i class="el-icon-location">
+                            <span slot="title">系统管理</span>
+                        </i>
+                    </template>
+                    <el-menu-item-group>
+                        <template slot="title">分组一</template>
+                        <el-menu-item index="1-1" @click="userManger">用户管理</el-menu-item>
+                        <el-menu-item index="1-2" @click="roleManger">角色管理</el-menu-item>
+                    </el-menu-item-group>
+                </el-submenu>
+
+            </el-menu>
+        </el-aside>
+        <el-container>
+            <el-header style="text-align: right; font-size: 12px">
+                <div class="block">
+                    <span>{{loginUser.username}}</span>
+<!--                    <el-avatar :src="loginUser.headImg" icon="el-icon-user-solid" :fit="loginUser.username"></el-avatar>-->
+                    <el-button type="primary" icon="el-icon-edit" @click="editPwdOpen"></el-button>
+                    <el-button type="primary" icon="el-icon-delete" @click="quit"></el-button>
+                </div>
+            </el-header>
+
+            <el-main>
+
+                <el-form :inline="true" :model="role" class="demo-form-inline">
+                    <el-form-item label="角色名称">
+                        <el-input v-model="role.roleName" placeholder="角色名称"></el-input>
+                    </el-form-item>
+                    <el-form-item label="角色描述">
+                        <el-input v-model="role.roleDesc" placeholder="角色描述"></el-input>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="onSubmit">查询</el-button>
+                    </el-form-item>
+                </el-form>
+
+                <el-row>
+                    <el-button type="danger" plain @click="deleteByIds">批量删除</el-button>
+                    <el-button type="primary" plain @click="addOpen">新增</el-button>
+                </el-row>
+                <el-dialog
+                        title="更改密码"
+                        :visible.sync="editPwdDialogVisible"
+                        width="30%"
+                        :before-close="editPwdHandleClose">
+                    <el-form ref="form" label-width="80px">
+                        <el-form-item label="原始密码">
+                            <el-input v-model="pwd" placeholder="原始密码" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item label="用户密码">
+                            <el-input v-model="pwd1" placeholder="用户密码" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item label="确认密码">
+                            <el-input v-model="pwd2" placeholder="确认密码" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="editPwd">提交</el-button>
+                            <el-button @click="editPwdRemove">取消</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-dialog>
+
+                <el-dialog
+                        title="新增角色"
+                        :visible.sync="addDialogVisible"
+                        :before-close="addHandleClose"
+                        width="30%">
+                    <el-form ref="form" :model="role" label-width="80px">
+                        <el-form-item label="角色名称">
+                            <el-input v-model="role.roleName" placeholder="角色名称"></el-input>
+                        </el-form-item>
+                        <el-form-item label="角色描述">
+                            <el-input type="textarea" v-model="role.roleDesc" placeholder="角色描述"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="addRole">提交</el-button>
+                            <el-button @click="addRemove">取消</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-dialog>
+
+                <el-dialog
+                        title="编辑角色"
+                        :visible.sync="editDialogVisible"
+                        :before-close="editHandleClose"
+                        width="30%">
+                    <el-form ref="form" :model="role" label-width="80px">
+                        <el-form-item label="角色名称">
+                            <el-input v-model="role.roleName" :disabled="roleInput"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-checkbox v-model="roleChecked" @change="roleCheckChange">是否更改用户名</el-checkbox>
+                        </el-form-item>
+                        <el-form-item label="角色描述">
+                            <el-input type="textarea" v-model="role.roleDesc"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="editRole">提交</el-button>
+                            <el-button @click="editRemove">取消</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-dialog>
+
+                <template>
+                    <el-table
+                            v-loading="loading"
+                            :data="tableData"
+                            style="width: 100%"
+                            :row-class-name="tableRowClassName"
+                            @selection-change="handleSelectionChange">
+                        <el-table-column type="expand">
+                            <template slot-scope="props">
+                                <el-form label-position="left" inline class="demo-table-expand">
+                                    <el-form-item label="角色id">
+                                        <span>{{ props.row.id }}</span>
+                                    </el-form-item>
+                                    <el-form-item label="角色名称">
+                                        <span>{{ props.row.roleName }}</span>
+                                    </el-form-item>
+                                    <el-form-item label="角色描述">
+                                        <span>{{ props.row.roleDesc }}</span>
+                                    </el-form-item>
+                                </el-form>
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                                type="selection"
+                                width="55">
+                        </el-table-column>
+                        <el-table-column
+                                type="index"
+                                label="序号"
+                                width="50"
+                                align="center">
+                        </el-table-column>
+                        <el-table-column
+                                prop="roleName"
+                                label="角色名称"
+                                align="center">
+                        </el-table-column>
+                        <el-table-column
+                                prop="roleDesc"
+                                label="角色描述"
+                                align="center">
+                        </el-table-column>
+                        <el-table-column
+                                label="操作"
+                                align="center">
+                            <template slot-scope="scope">
+                                <el-row>
+                                    <el-button type="primary" @click="editOpen(scope.row)">编辑</el-button>
+                                    <el-button type="danger" @click="deleteRole(scope.row)">删除</el-button>
+                                </el-row>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </template>
+            </el-main>
+            <el-footer>
+                <el-pagination
+                        @size-change="handleSizeChange"
+                        @current-change="handleCurrentChange"
+                        :current-page="currentPage"
+                        :page-sizes="[5, 10, 15, 20]"
+                        :page-size="100"
+                        layout="total, sizes, prev, pager, next, jumper"
+                        :total="totalCount">
+                </el-pagination>
+                <el-link type="primary" href="https://element.eleme.io" target="_blank">github<i class="el-icon-view el-icon--right"></i> </el-link>
+            </el-footer>
+        </el-container>
+    </el-container>
+</div>
+
+<script src="../../js/vue.js"></script>
+<script src="../../js/axios-0.18.0.js"></script>
+<script src="../../element-ui/lib/index.js"></script>
+
+
+<script>
+
+    new Vue({
+        el:"#app",
+        mounted() {
+            this.selectAll();
+            this.selectLoginUser();
+        },
+        methods: {
+            resetRole() {
+                this.role.id = '';
+                this.role.roleName = '';
+                this.role.roleDesc = '';
+            },
+            selectLoginUser() {
+                axios({
+                    method: "get",
+                    url: "/user"
+                }).then(resp =>{
+                    this.loginUser = resp.data.data;
+                })
+            },
+            addOpen() {
+                this.resetRole();
+                this.addDialogVisible = true;
+            },
+            addRemove() {
+                this.resetRole();
+                this.addDialogVisible = false;
+            },
+
+            editOpen(roleInfo) {
+                this.role.id = roleInfo.id;
+                this.role.roleName = roleInfo.roleName;
+                this.role.roleDesc = roleInfo.roleDesc;
+                this.editDialogVisible = true;
+            },
+            editRemove() {
+                this.resetRole();
+                this.roleChecked = false;
+                this.roleInput = true;
+                this.editDialogVisible = false;
+            },
+            selectAll() {
+                this.loading = true;
+                axios({
+                    method: "post",
+                    url: "/role/" + this.currentPage + "/" + this.pageSize,
+                    data: this.role
+                }).then(resp =>{
+                    this.tableData = resp.data.data.rows;
+                    this.totalCount = resp.data.data.totalCount;
+                });
+                this.loading = false;
+            },
+            tableRowClassName({row, rowIndex}) {
+                if (rowIndex === 1) {
+                    return 'warning-row';
+                } else if (rowIndex === 3) {
+                    return 'success-row';
+                }
+                return '';
+            },
+            handleSelectionChange(val) {
+                this.multipleSelection = val;
+            },
+            onSubmit() {
+                this.currentPage = 1;
+                this.selectAll();
+            },
+            addRole() {
+                axios({
+                    method: "post",
+                    url: "/role",
+                    data: this.role
+                }).then(resp =>{
+                    if (resp.data.code == 20010) {
+                        this.$message.error(resp.data.msg);
+                    } else if (resp.data.code == 20011) {
+                        this.resetRole();
+                        this.addDialogVisible = false;
+                        this.$message({
+                            message: resp.data.msg,
+                            type: 'success'
+                        });
+                        this.selectAll();
+                    } else {
+                        this.$message.error(resp.data.msg);
+                    }
+                });
+            },
+            deleteRole(roleInfo) {
+                this.$confirm('是否确定删除该角色?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios({
+                        method: "delete",
+                        url: "/role/" + roleInfo.id
+                    }).then(resp =>{
+                        if (resp.data.code == 20020) {
+                            this.$message.error(resp.data.msg);
+                        } else if (resp.data.code == 20021) {
+                            this.$message({
+                                message: resp.data.msg,
+                                type: 'success'
+                            });
+                            this.selectAll();
+                        } else {
+                            this.$message.error(resp.data.msg);
+                        }
+                    });
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                });
+            },
+            roleCheckChange(val) {
+                this.roleInput = !val;
+            },
+            editRole() {
+                var isUpdateRoleName = 0;
+                if (!this.roleInput)
+                    isUpdateRoleName = 1;
+                axios({
+                    method: "put",
+                    url: "/role",
+                    data: {
+                        role: this.role,
+                        isUpdateRoleName: isUpdateRoleName
+                    }
+                }).then(resp =>{
+                    if (resp.data.code == 20030) {
+                        this.$message.error(resp.data.msg);
+                    } else if (resp.data.code == 20031) {
+                        this.resetRole();
+                        this.roleChecked = false;
+                        this.roleInput = true;
+                        this.editDialogVisible = false;
+                        this.$message({
+                            message: '编辑成功',
+                            type: 'success'
+                        });
+                        this.selectAll();
+                    } else {
+                        this.$message.error(resp.data.msg);
+                    }
+                });
+            },
+            deleteByIds() {
+                for (let i = 0; i < this.multipleSelection.length; i++) {
+                    this.selectIds.push(this.multipleSelection[i].id)
+                }
+                this.$confirm('是否确定批量删除这些角色?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios({
+                        method: "delete",
+                        url: "/role",
+                        data: this.selectIds
+                    }).then(resp =>{
+                        if (resp.data.code == 20020) {
+                            this.$message.error(resp.data.msg);
+                        } else if (resp.data.code == 20021) {
+                            this.$message({
+                                message: resp.data.msg,
+                                type: 'success'
+                            });
+                            this.selectAll();
+                        } else {
+                            this.$message.error(resp.data.msg);
+                        }
+                    });
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                });
+            },
+            editPwdOpen() {
+                this.pwd1 = '';
+                this.pwd2 = '';
+                this.pwd = '';
+                this.editPwdDialogVisible = true
+            },
+            editPwdRemove() {
+                this.pwd1 = '';
+                this.pwd2 = '';
+                this.pwd = '';
+                this.editPwdDialogVisible = false
+            },
+            editPwd() {
+                axios({
+                    method: "put",
+                    url: "/user/editPwd",
+                    data: {
+                        pwd: this.pwd,
+                        pwd1: this.pwd1,
+                        pwd2: this.pwd2
+                    }
+                }).then(resp =>{
+                    if (resp.data.code == 20030) {
+                        this.$message.error(resp.data.msg);
+                    } else if (resp.data.code == 20031) {
+                        this.$message({
+                            message: resp.data.msg,
+                            type: 'success'
+                        });
+                        this.pwd = '';
+                        this.pwd1 = '';
+                        this.pwd2 = '';
+                        this.editPwdDialogVisible = false;
+                    }
+                    else {
+                        this.$message.error(resp.data.msg);
+                    }
+                })
+            },
+            quit() {
+                axios({
+                    method: "get",
+                    url: "/user/quit"
+                }).then(resp =>{
+                    if (resp.data.code == 20091)
+                        window.location.href = "/pages/user/login.html";
+                })
+            },
+            handleSizeChange(val) {
+                this.pageSize = val;
+                this.selectAll();
+            },
+            handleCurrentChange(val) {
+                this.currentPage = val;
+                this.selectAll();
+            },
+            addHandleClose(done) {
+                this.$confirm('确认关闭？')
+                    .then(_ => {
+                        this.resetRole();
+                        done();
+                    })
+                    .catch(_ => {});
+            },
+            editHandleClose(done) {
+                this.$confirm('确认关闭？')
+                    .then(_ => {
+                        this.resetRole();
+                        this.roleChecked = false;
+                        this.roleInput = true;
+                        done();
+                    })
+                    .catch(_ => {});
+            },
+            editPwdHandleClose(done) {
+                this.$confirm('确认关闭？')
+                    .then(_ => {
+                        this.pwd1 = '';
+                        this.pwd2 = '';
+                        this.pwd = '';
+                        done();
+                    })
+                    .catch(_ => {});
+            },
+            handleOpen(key, keyPath) {
+                console.log(key, keyPath);
+            },
+            handleClose(key, keyPath) {
+                console.log(key, keyPath);
+            },
+            userManger() {
+                window.location.href = "/pages/user/list.html";
+            },
+            roleManger() {
+                window.location.href = "/pages/role/list.html";
+            }
+        },
+        data() {
+            return {
+                tableData: [],
+                multipleSelection: [],
+                role: {
+                    id: "",
+                    roleName: '',
+                    roleDesc:''
+                },
+                addDialogVisible: false,
+                editDialogVisible: false,
+                currentPage: 1,
+                pageSize: 5,
+                selectIds: [],
+                totalCount: 100,
+                roleChecked: false,
+                roleInput: true,
+                loading: true,
+                isCollapse: true,
+                loginUser: {
+                    username: ''
+                },
+                pwd1: '',
+                pwd2: '',
+                pwd: '',
+                editPwdDialogVisible: false,
+            }
+        }
+    })
+</script>
+
+</body>
+</html>

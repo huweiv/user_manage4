@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huweiv.dao.UserDao">
+
+    <resultMap id="userRoleMap" type="com.huweiv.domain.User">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="email" property="email"/>
+        <result column="phoneNum" property="phoneNum"/>
+        <result column="sex" property="sex"/>
+        <result column="status" property="status"/>
+        <collection property="roles" ofType="com.huweiv.domain.Role">
+            <id column="roleId" property="id"/>
+            <result column="roleName" property="roleName"/>
+            <result column="roleDesc" property="roleDesc"/>
+        </collection>
+    </resultMap>
+    <select id="selectByCondition" resultMap="userRoleMap">
+        select * from sys_user u left join sys_user_role ur on u.id = ur.userId left join sys_role r on r.id=ur.roleId where u.deleted=0
+        <if test="user.username != null and user.username != ''">
+            and u.username like #{user.username}
+        </if>
+        <if test="user.email != null and user.email != ''">
+            and u.email like #{user.email}
+        </if>
+        <if test="user.phoneNum != null and user.phoneNum != ''">
+            and u.phoneNum like #{user.phoneNum}
+        </if>
+        <if test="user.sex != null">
+            and u.sex=#{user.sex}
+        </if>
+        <if test="roleIds != null">
+            <foreach collection="roleIds" item="roleId" open="and (ur.roleId=" close=")" separator="or ur.roleId=">
+                #{roleId}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="selectTotalCountByCondition" resultType="int">
+        select count(DISTINCT u.id) from sys_user u left join sys_user_role ur on u.id = ur.userId left join sys_role r on r.id=ur.roleId where u.deleted=0
+        <if test="user.username != null and user.username != ''">
+            and u.username like #{user.username}
+        </if>
+        <if test="user.email != null and user.email != ''">
+            and u.email like #{user.email}
+        </if>
+        <if test="user.phoneNum != null and user.phoneNum != ''">
+            and u.phoneNum like #{user.phoneNum}
+        </if>
+        <if test="user.sex != null">
+            and u.sex=#{user.sex}
+        </if>
+        <if test="roleIds != null">
+            <foreach collection="roleIds" item="roleId" open="and (ur.roleId=" close=")" separator="or ur.roleId=">
+                #{roleId}
+            </foreach>
+        </if>
+    </select>
+
+    <delete id="deleteUserIdAndRoleIdByUserIds" parameterType="Long[]">
+        delete from sys_user_role
+        <where>
+            <foreach collection="array" item="id" open="userId in(" close=")" separator=",">
+                #{id}
+            </foreach>
+        </where>
+    </delete>
+
+</mapper>

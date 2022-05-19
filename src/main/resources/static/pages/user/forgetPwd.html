@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../../element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/login.css">
+</head>
+<body class="body_box">
+
+<div id="app" class="forgetPwd_main_box">
+    <h4 class="h_style">更改密码</h4>
+    <el-form ref="user" :model="user" class="form_style">
+        <el-form-item class="form_item_style">
+            <el-input v-model="user.username" placeholder="用户名" class="input_style"></el-input>
+        </el-form-item>
+        <el-form-item class="form_item_style">
+            <el-input v-model="user.email" placeholder="用户邮件" class="input_style"></el-input>
+        </el-form-item>
+        <el-form-item class="form_item_style">
+            <el-input v-model="user.phoneNum" placeholder="用户号码" class="input_style"></el-input>
+        </el-form-item>
+        <el-form-item class="form_item_style">
+            <el-input v-model="pwd1" placeholder="修改密码" class="input_style" show-password></el-input>
+        </el-form-item>
+        <el-form-item class="form_item_style">
+            <el-input v-model="pwd2" placeholder="确认密码" class="input_style" show-password></el-input>
+        </el-form-item>
+        <el-form-item class="form_item_style">
+            <el-input v-model="kaptchaCode" placeholder="验证码"  class="input_kaptcha_style"></el-input>
+            <el-link :underline="false" @click="refrshKaptcha"><el-image class="kaptchaImg_style" :src="kaptchaImgUrl"></el-image></el-link>
+        </el-form-item>
+        <el-form-item class="form_item_style">
+            <el-button class="button_style" @click="forgetPwd">更改</el-button>
+        </el-form-item>
+    </el-form>
+</div>
+
+
+<script src="../../js/vue.js"></script>
+<script src="../../js/axios-0.18.0.js"></script>
+<script src="../../element-ui/lib/index.js"></script>
+
+
+
+<script>
+
+    new Vue({
+        el:"#app",
+        methods: {
+            refrshKaptcha() {
+                this.kaptchaImgUrl = '/user/kaptcha?' + new Date().getMilliseconds()
+            },
+            forgetPwd() {
+                axios({
+                    method: "put",
+                    url: "/user/forgetPwd",
+                    data: {
+                        user: this.user,
+                        kaptchaCode: this.kaptchaCode,
+                        pwd1: this.pwd1,
+                        pwd2: this.pwd2
+                    }
+                }).then(resp =>{
+                    if (resp.data.code == 20060) {
+                        this.$message.error(resp.data.msg);
+                        this.refrshKaptcha();
+                    } else if (resp.data.code == 20061){
+                        this.$message({
+                            message: '更改成功',
+                            type: 'success'
+                        });
+                        window.location.href = "/pages/user/login.html";
+                    }
+                    else {
+                        this.$message.error(resp.data.msg);
+                        this.refrshKaptcha();
+                    }
+                });
+            }
+        },
+        data() {
+            return {
+                user: {
+                    username: '',
+                    email: '',
+                    phoneNum: ''
+                },
+                kaptchaImgUrl: '/user/kaptcha',
+                kaptchaCode: '',
+                pwd1: '',
+                pwd2: ''
+            }
+        }
+    })
+</script>
+
+</body>
+</html>

@@ -1,0 +1,47 @@
+#设置启动的环境
+spring:
+  profiles:
+    active: ${profile.active}
+---
+#测试环境
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/test2?serverTimezone=UTC
+    username: root
+    password: root
+    type: com.alibaba.druid.pool.DruidDataSource
+  main:
+    banner-mode: off
+server:
+  port: 8080
+#日志
+logging:
+  level:
+    root: info
+#分页
+pagehelper:
+  helper-dialect: mysql
+#MP
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: ASSIGN_ID
+      table-prefix: sys_
+      logic-delete-field: deleted
+      logic-not-delete-value: 0
+      logic-delete-value: 1
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+server:
+  port: 8082

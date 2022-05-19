@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../../element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="../../css/elementUIStyle.css">
+
+</head>
+<body>
+
+<div id="app">
+    <el-container style="height: 100%; border: 1px solid #eee">
+        <el-aside width="200px" style="background-color: rgb(238, 241, 246)">
+            <el-radio-group v-model="isCollapse" style="margin-bottom: 20px;">
+                <el-radio-button :label="false">展开</el-radio-button>
+                <el-radio-button :label="true">收起</el-radio-button>
+            </el-radio-group>
+            <el-menu default-active="1-1" class="el-menu-vertical-demo" @open="handleOpen" @close="handleClose" :collapse="isCollapse">
+                <el-submenu index="1">
+                    <template slot="title">
+                        <i class="el-icon-location">
+                            <span slot="title">系统管理</span>
+                        </i>
+                    </template>
+                    <el-menu-item-group>
+                        <template slot="title">分组一</template>
+                        <el-menu-item index="1-1" @click="userManger">用户管理</el-menu-item>
+                        <el-menu-item index="1-2" @click="roleManger">角色管理</el-menu-item>
+                    </el-menu-item-group>
+                </el-submenu>
+            </el-menu>
+        </el-aside>
+        <el-container>
+            <el-header style="text-align: right; font-size: 12px">
+                <div class="block">
+                    <span>{{loginUser.username}}</span>
+<!--                    <el-avatar :src="loginUser.headImg" icon="el-icon-user-solid" :fit="loginUser.username"></el-avatar>-->
+                    <el-button type="primary" icon="el-icon-edit" @click="editPwdOpen"></el-button>
+                    <el-button type="primary" icon="el-icon-delete" @click="quit"></el-button>
+                </div>
+            </el-header>
+            <el-main>
+                <el-form :inline="true" :model="user" class="demo-form-inline">
+                    <el-form-item label="用户名称">
+                        <el-input v-model="user.username" placeholder="用户名称"></el-input>
+                    </el-form-item>
+                    <el-form-item label="用户邮件">
+                        <el-input v-model="user.email" placeholder="用户邮件"></el-input>
+                    </el-form-item>
+                    <el-form-item label="用户号码">
+                        <el-input v-model="user.phoneNum" placeholder="用户号码"></el-input>
+                    </el-form-item>
+                    <el-form-item label="用户性别">
+                        <el-select v-model="user.sex" clearable placeholder="请选择性别">
+                            <el-option label="男" value="0"></el-option>
+                            <el-option label="女" value="1"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="用户状态">
+                        <el-select v-model="user.status" clearable placeholder="请选择状态">
+                            <el-option label="启用" value="1"></el-option>
+                            <el-option label="禁用" value="0"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="用户角色">
+                        <el-select v-model="roleIds" multiple placeholder="请选择用户角色">
+                            <el-option v-for="item in role"
+                                       :key="item.id"
+                                       :label="item.roleName"
+                                       :value="item.id">
+                            </el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="onSubmit">查询</el-button>
+                    </el-form-item>
+                </el-form>
+
+                <el-row>
+                    <el-button type="danger" plain @click="deleteByIds">批量删除</el-button>
+                    <el-button type="primary" plain @click="addOpen">新增</el-button>
+                </el-row>
+
+
+                <el-dialog
+                        title="更改密码"
+                        :visible.sync="editPwdDialogVisible"
+                        width="30%"
+                        :before-close="editPwdHandleClose">
+                    <el-form ref="form" label-width="80px">
+                        <el-form-item label="原始密码">
+                            <el-input v-model="pwd" placeholder="原始密码" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item label="用户密码">
+                            <el-input v-model="pwd1" placeholder="用户密码" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item label="确认密码">
+                            <el-input v-model="pwd2" placeholder="确认密码" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="editPwd">提交</el-button>
+                            <el-button @click="editPwdRemove">取消</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-dialog>
+
+                <el-dialog
+                        title="新增用户"
+                        :visible.sync="addDialogVisible"
+                        :before-close="addHandleClose"
+                        width="30%">
+                    <el-form ref="form" :model="user" label-width="80px">
+                        <el-form-item label="用户名称">
+                            <el-input v-model="user.username" placeholder="用户名称"></el-input>
+                        </el-form-item>
+                        <el-form-item label="用户邮件">
+                            <el-input v-model="user.email" placeholder="用户邮件"></el-input>
+                        </el-form-item>
+                        <el-form-item label="用户号码">
+                            <el-input v-model="user.phoneNum" placeholder="用户号码"></el-input>
+                        </el-form-item>
+                        <el-form-item label="用户密码">
+                            <el-input v-model="pwd1" placeholder="用户密码" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item label="确认密码">
+                            <el-input v-model="pwd2" placeholder="确认密码" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item label="用户性别">
+                            <el-select v-model="user.sex" placeholder="请选择性别">
+                                <el-option label="男" value="0"></el-option>
+                                <el-option label="女" value="1"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="用户状态">
+                            <el-switch v-model="user.status" active-value="1" inactive-value="0"></el-switch>
+                        </el-form-item>
+                        <el-form-item label="角色信息">
+                            <el-checkbox-group v-model="roleIds">
+                                <el-checkbox v-for="item in role" :label="item.id">{{item.roleName}}</el-checkbox>
+                            </el-checkbox-group>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="addUser">提交</el-button>
+                            <el-button @click="addRemove">取消</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-dialog>
+
+                <el-dialog
+                        title="编辑用户"
+                        :visible.sync="editDialogVisible"
+                        :before-close="editHandleClose"
+                        width="30%">
+                    <el-form ref="form" :model="user" label-width="80px">
+                        <el-form-item label="用户名称">
+                            <el-input v-model="user.username" :disabled="userInput"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-checkbox v-model="userChecked" @change="userCheckChange">是否更改用户名</el-checkbox>
+                        </el-form-item>
+                        <el-form-item label="用户邮件">
+                            <el-input v-model="user.email"></el-input>
+                        </el-form-item>
+                        <el-form-item label="用户号码">
+                            <el-input v-model="user.phoneNum"></el-input>
+                        </el-form-item>
+                        <el-form-item label="用户密码">
+                            <el-input v-model="pwd1" placeholder="用户密码" :disabled="userInputPwd" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item label="确认密码">
+                            <el-input v-model="pwd2" placeholder="确认密码" :disabled="userInputPwd" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-checkbox v-model="userCheckedPwd" @change="userCheckChangePwd">是否更改用户密码</el-checkbox>
+                        </el-form-item>
+                        <el-form-item label="用户性别">
+                            <el-select v-model="user.sex" placeholder="请选择性别">
+                                <el-option label="男" value="0"></el-option>
+                                <el-option label="女" value="1"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="用户状态">
+                            <el-switch v-model="user.status" active-value="1" inactive-value="0"></el-switch>
+                        </el-form-item>
+                        <el-form-item label="角色信息">
+                            <el-checkbox-group v-model="roleIds">
+                                <el-checkbox v-for="item in role" :label="item.id" :key="item.id">{{item.roleName}}</el-checkbox>
+                            </el-checkbox-group>
+                        </el-form-item>
+                            <el-button type="primary" @click="editUser">提交</el-button>
+                            <el-button @click="editRemove">取消</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-dialog>
+
+                <template>
+                    <el-table
+                            v-loading="loading"
+                            :data="tableData"
+                            style="width: 100%"
+                            :row-class-name="tableRowClassName"
+                            @selection-change="handleSelectionChange">
+                        <el-table-column type="expand">
+                            <template slot-scope="props">
+                                <el-form label-position="left" inline class="demo-table-expand">
+                                    <el-form-item label="用户id">
+                                        <span>{{ props.row.id }}</span>
+                                    </el-form-item>
+                                    <el-form-item label="用户名称">
+                                        <span>{{ props.row.username }}</span>
+                                    </el-form-item>
+                                    <el-form-item label="用户邮件">
+                                        <span>{{ props.row.email }}</span>
+                                    </el-form-item>
+                                    <el-form-item label="用户号码">
+                                        <span>{{ props.row.phoneNum }}</span>
+                                    </el-form-item>
+                                    <el-form-item label="用户性别">
+                                        <span>{{ props.row.sexStr }}</span>
+                                    </el-form-item>
+                                    <el-form-item label="用户状态">
+                                        <span>{{ props.row.statusStr }}</span>
+                                    </el-form-item>
+                                </el-form>
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                                type="selection"
+                                width="55">
+                        </el-table-column>
+                        <el-table-column
+                                type="index"
+                                label="序号"
+                                width="50"
+                                align="center">
+                        </el-table-column>
+                        <el-table-column
+                                prop="username"
+                                label="用户名称"
+                                align="center">
+                        </el-table-column>
+                        <el-table-column
+                                prop="email"
+                                label="用户邮件"
+                                align="center">
+                        </el-table-column>
+                        <el-table-column
+                                prop="phoneNum"
+                                label="用户号码"
+                                align="center">
+                        </el-table-column>
+                        <el-table-column
+                                prop="sexStr"
+                                label="用户性别"
+                                align="center">
+                        </el-table-column>
+                        <el-table-column
+                                prop="statusStr"
+                                label="用户状态"
+                                align="center">
+                        </el-table-column>
+                        <el-table-column
+                                prop="roles"
+                                label="具有角色"
+                                align="center">
+                            <template slot-scope="scope">
+                                <span v-for="item in scope.row.roles">{{item.roleName}}&nbsp;</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                                label="操作"
+                                align="center">
+                            <template slot-scope="scope">
+                                <el-row>
+                                    <el-button type="primary" @click="editOpen(scope.row)">编辑</el-button>
+                                    <el-button type="danger" @click="deleteUser(scope.row)">删除</el-button>
+                                </el-row>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </template>
+            </el-main>
+            <el-footer>
+                <el-pagination
+                        @size-change="handleSizeChange"
+                        @current-change="handleCurrentChange"
+                        :current-page="currentPage"
+                        :page-sizes="[5, 10, 15, 20]"
+                        :page-size="100"
+                        layout="total, sizes, prev, pager, next, jumper"
+                        :total="totalCount">
+                </el-pagination>
+                <el-link type="primary" href="https://element.eleme.io" target="_blank">github<i class="el-icon-view el-icon--right"></i> </el-link>
+            </el-footer>
+        </el-container>
+    </el-container>
+</div>
+
+<script src="../../js/vue.js"></script>
+<script src="../../js/axios-0.18.0.js"></script>
+<script src="../../element-ui/lib/index.js"></script>
+
+
+<script>
+
+    new Vue({
+        el:"#app",
+        mounted() {
+            this.selectAll();
+            this.selectAllRole();
+            this.selectLoginUser();
+        },
+        methods: {
+            resetUser() {
+                this.user.id = '';
+                this.user.username = '';
+                this.user.email = '';
+                this.user.phoneNum = '';
+                this.user.sex = '';
+                this.user.status = '';
+            },
+            selectLoginUser() {
+                axios({
+                    method: "get",
+                    url: "/user"
+                }).then(resp =>{
+                    this.loginUser = resp.data.data;
+                })
+            },
+            selectAllRole() {
+                axios({
+                    method: "get",
+                    url: "/role"
+                }).then(resp =>{
+                    this.role = resp.data.data;
+                })
+            },
+            selectAll() {
+                this.loading = true;
+                axios({
+                    method: "post",
+                    url: "/user/" + this.currentPage + "/" + this.pageSize,
+                    data: {
+                        user: this.user,
+                        roleIds: this.roleIds
+                    }
+                }).then(resp =>{
+                    this.tableData = resp.data.data.rows;
+                    this.totalCount = resp.data.data.totalCount;
+                });
+                this.loading = false;
+            },
+            onSubmit() {
+                this.currentPage = 1;
+                this.selectAll();
+            },
+            addOpen() {
+                this.resetUser();
+                this.user.sex = '0';
+                this.user.status = '1';
+                this.pwd1 = '';
+                this.pwd2 = '';
+                this.roleIds = [];
+                this.addDialogVisible = true
+            },
+            addRemove() {
+                this.resetUser();
+                this.pwd1 = '';
+                this.pwd2 = '';
+                this.roleIds = [];
+                this.addDialogVisible = false;
+            },
+            addUser() {
+                axios({
+                    method: "post",
+                    url: "/user",
+                    data: {
+                        user: this.user,
+                        roleIds: this.roleIds,
+                        pwd1: this.pwd1,
+                        pwd2: this.pwd2
+                    }
+                }).then(resp =>{
+                    if (resp.data.code == 20010) {
+                        this.$message.error(resp.data.msg);
+                    } else if (resp.data.code == 20011) {
+                        this.resetUser();
+                        this.pwd1 = '';
+                        this.pwd2 = '';
+                        this.roleIds = [];
+                        this.addDialogVisible = false;
+                        this.$message({
+                            message: resp.data.msg,
+                            type: 'success'
+                        });
+                    } else {
+                        this.$message.error(resp.data.msg);
+                    }
+                }).finally(() => {
+                    this.selectAll();
+                });
+            },
+            editOpen(userInfo) {
+                this.user.id = userInfo.id;
+                this.user.username = userInfo.username;
+                this.user.email = userInfo.email;
+                this.user.phoneNum = userInfo.phoneNum;
+                this.user.sex = userInfo.sex.toString();
+                this.user.status = userInfo.status.toString();
+                for (let i = 0; i < userInfo.roles.length; i++) {
+                    this.roleIds.push(userInfo.roles[i].id)
+                }
+                this.pwd1 = '';
+                this.pwd2 = '';
+                this.editDialogVisible = true
+            },
+            editRemove() {
+                this.resetUser();
+                this.roleIds = [];
+                this.pwd1 = '';
+                this.pwd2 = '';
+                this.userChecked = false;
+                this.userInput = true;
+                this.userCheckedPwd = false;
+                this.userInputPwd = true;
+                this.editDialogVisible = false
+            },
+            editUser() {
+                var isUpdateUserName = 0;
+                var isUpdateUserPwd = 0;
+                if (!this.userInput)
+                    isUpdateUserName = 1;
+                if (!this.userInputPwd)
+                    isUpdateUserPwd = 1;
+                axios({
+                    method: "put",
+                    url: "/user",
+                    data: {
+                        user: this.user,
+                        pwd1: this.pwd1,
+                        pwd2: this.pwd2,
+                        roleIds: this.roleIds,
+                        isUpdateUserName: isUpdateUserName,
+                        isUpdateUserPwd: isUpdateUserPwd
+                    }
+                }).then(resp =>{
+                    if (resp.data.code == 20030) {
+                        this.$message.error(resp.data.msg);
+                    } else if (resp.data.code == 20031) {
+                        this.resetUser();
+                        this.roleIds = [];
+                        this.pwd1 = '';
+                        this.pwd2 = '';
+                        this.userChecked = false;
+                        this.userInput = true;
+                        this.userCheckedPwd = false;
+                        this.userInputPwd = true;
+                        this.editDialogVisible = false;
+                        this.$message({
+                            message: '编辑成功',
+                            type: 'success'
+                        });
+                    } else {
+                        this.$message.error(resp.data.msg);
+                    }
+                }).finally(() => {
+                    this.selectAll();
+                });
+            },
+            editPwdOpen() {
+                this.pwd1 = '';
+                this.pwd2 = '';
+                this.pwd = '';
+                this.editPwdDialogVisible = true
+            },
+            editPwdRemove() {
+                this.pwd1 = '';
+                this.pwd2 = '';
+                this.pwd = '';
+                this.editPwdDialogVisible = false
+            },
+            editPwd() {
+                axios({
+                    method: "put",
+                    url: "/user/editPwd",
+                    data: {
+                        pwd: this.pwd,
+                        pwd1: this.pwd1,
+                        pwd2: this.pwd2
+                    }
+                }).then(resp =>{
+                    if (resp.data.code == 20030) {
+                        this.$message.error(resp.data.msg);
+                    } else if (resp.data.code == 20031) {
+                        this.$message({
+                            message: resp.data.msg,
+                            type: 'success'
+                        });
+                        this.pwd = '';
+                        this.pwd1 = '';
+                        this.pwd2 = '';
+                        this.editPwdDialogVisible = false;
+                    }
+                    else {
+                        this.$message.error(resp.data.msg);
+                    }
+                })
+            },
+            userCheckChange(val) {
+                this.userInput = !val;
+            },
+            userCheckChangePwd(val) {
+                this.userInputPwd = !val;
+            },
+            handleSelectionChange(val) {
+                this.multipleSelection = val;
+            },
+            deleteByIds() {
+                for (let i = 0; i < this.multipleSelection.length; i++) {
+                    this.selectIds.push(this.multipleSelection[i].id)
+                }
+                this.$confirm('是否确定批量删除这些用户?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios({
+                        method: "delete",
+                        url: "/user",
+                        data: this.selectIds
+                    }).then(resp =>{
+                        if (resp.data.code == 20020) {
+                            this.$message.error(resp.data.msg);
+                        } else if (resp.data.code == 20021) {
+                            this.$message({
+                                message: resp.data.msg,
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message.error(resp.data.msg);
+                        }
+                    }).finally(() => {
+                        this.selectAll();
+                    });
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                });
+            },
+            deleteUser(userInfo) {
+                this.$confirm('是否确定删除该用户?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios({
+                        method: "delete",
+                        url: "/user/" + userInfo.id
+                    }).then(resp =>{
+                        if (resp.data.code == 20020) {
+                            this.$message.error(resp.data.msg);
+                        } else if (resp.data.code == 20021) {
+                            this.$message({
+                                message: resp.data.msg,
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message.error(resp.data.msg);
+                        }
+                    }).finally(() => {
+                        this.selectAll();
+                    });
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                });
+
+            },
+            quit() {
+                axios({
+                    method: "get",
+                    url: "/user/quit"
+                }).then(resp =>{
+                    if (resp.data.code == 20091)
+                        window.location.href = "/pages/user/login.html";
+                })
+            },
+            tableRowClassName({row, rowIndex}) {
+                if (rowIndex === 1) {
+                    return 'warning-row';
+                } else if (rowIndex === 3) {
+                    return 'success-row';
+                }
+                return '';
+            },
+            handleSizeChange(val) {
+                this.pageSize = val;
+                this.selectAll();
+            },
+            handleCurrentChange(val) {
+                this.currentPage = val;
+                this.selectAll();
+
+            },
+            addHandleClose(done) {
+                this.$confirm('确认关闭？')
+                    .then(_ => {
+                        this.resetUser();
+                        this.pwd1 = '';
+                        this.pwd2 = '';
+                        this.roleIds = [];
+                        done();
+                    })
+                    .catch(_ => {});
+            },
+            editHandleClose(done) {
+                this.$confirm('确认关闭？')
+                    .then(_ => {
+                        this.resetUser();
+                        this.roleIds = [];
+                        this.userChecked = false;
+                        this.userInput = true;
+                        done();
+                    })
+                    .catch(_ => {});
+            },
+            editPwdHandleClose(done) {
+                this.$confirm('确认关闭？')
+                    .then(_ => {
+                        this.pwd1 = '';
+                        this.pwd2 = '';
+                        this.pwd = '';
+                        done();
+                    })
+                    .catch(_ => {});
+            },
+            handleOpen(key, keyPath) {
+                console.log(key, keyPath);
+            },
+            handleClose(key, keyPath) {
+                console.log(key, keyPath);
+            },
+            userManger() {
+                window.location.href = "/pages/user/list.html";
+            },
+            roleManger() {
+                window.location.href = "/pages/role/list.html";
+            },
+        },
+        data() {
+            return {
+                tableData: [],
+                multipleSelection: [],
+                user: {
+                    id: '',
+                    username: '',
+                    email: '',
+                    phoneNum: '',
+                    sex: '',
+                    status: '',
+                },
+                role: {
+                    id: "",
+                    roleName: '',
+                    roleDesc:''
+                },
+                roleIds: [],
+                currentPage: 1,
+                pageSize: 5,
+                selectIds: [],
+                totalCount: 100,
+                userChecked: false,
+                userInput: true,
+                userCheckedPwd: false,
+                userInputPwd: true,
+                addDialogVisible: false,
+                editDialogVisible: false,
+                editPwdDialogVisible: false,
+                pwd1: '',
+                pwd2: '',
+                pwd: '',
+                loading: true,
+                isCollapse: true,
+                loginUser: {
+                    username: ''
+                },
+            }
+        }
+    })
+</script>
+
+</body>
+</html>
